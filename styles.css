@@ -129,6 +129,16 @@ h2 {
   font-weight: 700;
 }
 
+.profile span span {
+  display: block;
+}
+
+.sync-status {
+  margin-top: 2px;
+  color: var(--line-dark);
+  font-size: 0.72rem;
+}
+
 .avatar {
   display: grid;
   width: 34px;

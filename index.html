@@ -10,6 +10,7 @@
     />
     <link rel="stylesheet" href="./styles.css" />
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="./config.js"></script>
   </head>
   <body>
     <main class="app-shell">
@@ -23,7 +24,10 @@
         </div>
         <div class="profile" id="profile">
           <span class="avatar" id="avatar">旅</span>
-          <span id="profile-name">ゲスト</span>
+          <span>
+            <span id="profile-name">ゲスト</span>
+            <span class="sync-status" id="sync-status">端末保存</span>
+          </span>
         </div>
       </section>
 

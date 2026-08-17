@@ -1,0 +1,5 @@
+window.LINE_TRIP_PLANNER_CONFIG = {
+  SUPABASE_URL: "",
+  SUPABASE_ANON_KEY: "",
+  DEFAULT_TRIP_ID: "main-trip"
+};

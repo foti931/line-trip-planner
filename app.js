@@ -1,5 +1,17 @@
 const STORAGE_KEY = "line-trip-planner:v1";
 const DEFAULT_LIFF_ID = "2011148240-H74Owj2K";
+const APP_CONFIG = window.LINE_TRIP_PLANNER_CONFIG || {};
+const TRIP_ID =
+  new URLSearchParams(location.search).get("trip") ||
+  APP_CONFIG.DEFAULT_TRIP_ID ||
+  "main-trip";
+const sync = {
+  enabled: Boolean(APP_CONFIG.SUPABASE_URL && APP_CONFIG.SUPABASE_ANON_KEY),
+  remoteUpdatedAt: "",
+  userId: "",
+  pollTimer: 0,
+  saveTimer: 0,
+};
 
 const initialState = {
   trip: {
@@ -57,12 +69,14 @@ const elements = {
   importJson: document.querySelector("#import-json"),
   profileName: document.querySelector("#profile-name"),
   avatar: document.querySelector("#avatar"),
+  syncStatus: document.querySelector("#sync-status"),
   toast: document.querySelector("#toast"),
 };
 
 bindEvents();
 render();
 initLiff();
+initSharedStorage();
 
 function loadState() {
   try {
@@ -75,6 +89,7 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  queueRemoteSave();
 }
 
 function bindEvents() {
@@ -328,6 +343,7 @@ async function initLiff() {
       return;
     }
     const profile = await window.liff.getProfile();
+    sync.userId = profile.userId;
     elements.profileName.textContent = profile.displayName;
     elements.avatar.innerHTML = profile.pictureUrl
       ? `<img src="${profile.pictureUrl}" alt="">`
@@ -335,6 +351,101 @@ async function initLiff() {
   } catch (error) {
     console.error(error);
   }
+}
+
+async function initSharedStorage() {
+  if (!sync.enabled) {
+    setSyncStatus("端末保存");
+    return;
+  }
+
+  setSyncStatus("共有DB接続中");
+  await pullRemoteState();
+  sync.pollTimer = window.setInterval(pullRemoteState, 5000);
+}
+
+async function pullRemoteState() {
+  if (!sync.enabled) return;
+
+  try {
+    const rows = await supabaseRequest(
+      `/rest/v1/trip_plans?id=eq.${encodeURIComponent(TRIP_ID)}&select=data,updated_at`
+    );
+    const row = rows[0];
+
+    if (!row) {
+      await saveRemoteState();
+      setSyncStatus("共有中");
+      return;
+    }
+
+    if (row.updated_at && row.updated_at !== sync.remoteUpdatedAt) {
+      sync.remoteUpdatedAt = row.updated_at;
+      state = row.data;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      render();
+    }
+
+    setSyncStatus("共有中");
+  } catch (error) {
+    console.error(error);
+    setSyncStatus("端末保存");
+  }
+}
+
+function queueRemoteSave() {
+  if (!sync.enabled) return;
+
+  window.clearTimeout(sync.saveTimer);
+  sync.saveTimer = window.setTimeout(saveRemoteState, 450);
+}
+
+async function saveRemoteState() {
+  if (!sync.enabled) return;
+
+  try {
+    const rows = await supabaseRequest("/rest/v1/trip_plans?on_conflict=id&select=updated_at", {
+      method: "POST",
+      headers: {
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify({
+        id: TRIP_ID,
+        data: state,
+        updated_at: new Date().toISOString(),
+        updated_by: sync.userId || null,
+      }),
+    });
+    sync.remoteUpdatedAt = rows[0]?.updated_at || sync.remoteUpdatedAt;
+    setSyncStatus("共有中");
+  } catch (error) {
+    console.error(error);
+    setSyncStatus("同期失敗");
+  }
+}
+
+async function supabaseRequest(path, options = {}) {
+  const response = await fetch(`${APP_CONFIG.SUPABASE_URL}${path}`, {
+    method: options.method || "GET",
+    headers: {
+      apikey: APP_CONFIG.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${APP_CONFIG.SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+    body: options.body,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase request failed: ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+function setSyncStatus(text) {
+  elements.syncStatus.textContent = text;
 }
 
 function showToast(message) {
