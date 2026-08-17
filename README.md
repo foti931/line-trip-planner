@@ -23,10 +23,16 @@ python3 -m http.server 8080
 
 ブラウザで `http://localhost:8080` を開くと使えます。
 
-LIFFで使う場合は、LIFFアプリのエンドポイントにこのWebアプリのURLを設定してください。LIFF IDをクエリ文字列で渡すと初期化します。
+LIFFで使う場合は、LIFFアプリのエンドポイントにこのWebアプリのURLを設定してください。現在は次のLIFF IDを既定値として設定済みです。
 
 ```text
-https://example.com/?liffId=YOUR_LIFF_ID
+2011148240-H74Owj2K
+```
+
+LIFF URL:
+
+```text
+https://liff.line.me/2011148240-H74Owj2K
 ```
 
 ## 構成

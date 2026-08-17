@@ -1,4 +1,5 @@
 const STORAGE_KEY = "line-trip-planner:v1";
+const DEFAULT_LIFF_ID = "2011148240-H74Owj2K";
 
 const initialState = {
   trip: {
@@ -317,7 +318,7 @@ async function importJson(event) {
 }
 
 async function initLiff() {
-  const liffId = new URLSearchParams(location.search).get("liffId");
+  const liffId = new URLSearchParams(location.search).get("liffId") || DEFAULT_LIFF_ID;
   if (!window.liff || !liffId) return;
 
   try {
